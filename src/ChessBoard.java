@@ -6,7 +6,9 @@ import javax.swing.border.*;
 //======================================================Don't modify below===============================================================//
 enum PieceType {king, queen, bishop, knight, rook, pawn, none}
 enum PlayerColor {black, white, none}
-	
+
+//Name : Han Seung Hun
+//StudentID#: 2014-12614
 public class ChessBoard {
 	private final JPanel gui = new JPanel(new BorderLayout(3, 3));
 	private JPanel chessBoard;
