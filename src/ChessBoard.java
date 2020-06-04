@@ -259,10 +259,10 @@ public class ChessBoard {
             } else {
                 if (status.equals(MagicType.MARK)) {
                     unmarkAll();
-                    if (isReachable(selX, selY, x, y)) {
+                    if (isReachable(selX, selY, x, y)) { // duplicate code
                         move(x, y);
                         check();
-//                        checkmate();
+                        checkmate();
                         changeTurn();
                         setStatusMessage();
 //                        printPieceArray();
@@ -319,10 +319,19 @@ public class ChessBoard {
     }
 
     void move(int x, int y) {
+        move(x, y, false);
+    }
+
+    void move(int x, int y, boolean onCheckmate) {
         if (getIcon(x, y).color.equals(opponentColor(turn))) removePiece(x, y);
         updatePiece(selX, selY, x, y);
-        setIcon(x, y, getIcon(selX, selY));
-        setIcon(selX, selY, piece_null);
+        if (onCheckmate) {
+            setPiece(x, y, getIcon(selX, selY));
+            setPiece(selX, selY, piece_null);
+        } else {
+            setIcon(x, y, getIcon(selX, selY));
+            setIcon(selX, selY, piece_null);
+        }
     }
 
     PlayerColor opponentColor(PlayerColor color) {
@@ -357,6 +366,11 @@ public class ChessBoard {
             return null;
         }
     }
+
+    void setPiece(int x, int y, Piece piece) {
+        chessBoardStatus[y][x] = piece;
+    }
+
 
     int xy2int(int x, int y) {
         return x << 3 | y;
@@ -523,9 +537,59 @@ public class ChessBoard {
     }
 
     void checkmate() {
+        if (!check) return;
+        int[] opponent_piece_x = turn.equals(PlayerColor.white) ? black_piece_x : white_piece_x;
+        int[] opponent_piece_y = turn.equals(PlayerColor.white) ? black_piece_y : white_piece_y;
+        for (int i = 0; i < 16; i++) {
+            selX = opponent_piece_x[i];
+            selY = opponent_piece_y[i];
+            if (isDeadPiece(selX, selY)) continue;
+            searchPossibleMove(selX, selY);
+            ArrayList<Integer> possibleMoves = (ArrayList<Integer>) possibleMove.clone();
+            Iterator<Integer> moves = possibleMoves.iterator();
+            while (moves.hasNext()) {
+                int num = moves.next();
+                int x_target = int2x(num);
+                int y_target = int2y(num);
+                changeTurn();
+                backupContext();
+                move(x_target, y_target, true);
+                changeTurn();
+                check();
+                restoreContext();
+                if (!(checkmate = check)){
+                    check = true;
+                    return;
+                }
+            }
+        }
 
     }
 
+    void backupContext() {
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                chessBoardStatus_tmp[j][i] = getIcon(i,j);
+            }
+        }
+        black_piece_x_tmp = black_piece_x.clone();
+        black_piece_y_tmp = black_piece_y.clone();
+        white_piece_x_tmp = white_piece_x.clone();
+        white_piece_y_tmp = white_piece_y.clone();
+    }
+
+    void restoreContext() {
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                chessBoardStatus[j][i] = chessBoardStatus_tmp[j][i];
+            }
+        }
+//        chessBoardStatus = chessBoardStatus_tmp;
+        black_piece_x = black_piece_x_tmp;
+        black_piece_y = black_piece_y_tmp;
+        white_piece_x = white_piece_x_tmp;
+        white_piece_y = white_piece_y_tmp;
+    }
 
     void setStatusMessage() {
         String s = turn.toString().toUpperCase() + "'s TURN";
