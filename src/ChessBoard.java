@@ -243,25 +243,25 @@ public class ChessBoard {
                 mark(x, y);
             } else {
                 if (status.equals(MagicType.MARK)) {
+                    unmarkAll();
                     if (isReachable(selX, selY, x, y)) {
                         move(x, y);
                         changeTurn();
-                    } else {
-                        unmarkAll();
-                        status = MagicType.INITIAL;
                     }
+                    status = MagicType.INITIAL;
                 }
             }
         }
     }
 
     void move(int x, int y) {
-        setIcon(x, y,getIcon(selX, selY));
-        setIcon(selX,selY,piece_null);
+        setIcon(x, y, getIcon(selX, selY));
+        setIcon(selX, selY, piece_null);
     }
 
     void changeTurn() {
-
+        turn = turn.equals(PlayerColor.black) ? PlayerColor.white : PlayerColor.black;
+        setStatusMessage();
     }
 
     void unmarkAll() {
