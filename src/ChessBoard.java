@@ -215,6 +215,7 @@ public class ChessBoard {
     private boolean check, checkmate, end;
     private PlayerColor turn;
     private MagicType status;
+    final Piece piece_null = new Piece();
 
     final int[] queen_dx = {-1, -1, 0, 1, 1, 1, 0, -1};
     final int[] queen_dy = {0, 1, 1, 1, 0, -1, -1, -1};
@@ -255,7 +256,8 @@ public class ChessBoard {
     }
 
     void move(int x, int y) {
-
+        setIcon(x, y,getIcon(selX, selY));
+        setIcon(selX,selY,piece_null);
     }
 
     void changeTurn() {
