@@ -217,6 +217,11 @@ public class ChessBoard {
     private MagicType status;
     final Piece piece_null = new Piece();
 
+    private int[] black_piece_x = new int[16];
+    private int[] black_piece_y = new int[16];
+    private int[] white_piece_x = new int[16];
+    private int[] white_piece_y = new int[16];
+
     final int[] queen_dx = {-1, -1, 0, 1, 1, 1, 0, -1};
     final int[] queen_dy = {0, 1, 1, 1, 0, -1, -1, -1};
     final int[] rook_dx = {-1, 0, 1, 0};
@@ -247,6 +252,7 @@ public class ChessBoard {
                     if (isReachable(selX, selY, x, y)) {
                         move(x, y);
                         changeTurn();
+                        printPieceArray();
                     }
                     status = MagicType.INITIAL;
                 }
@@ -254,13 +260,64 @@ public class ChessBoard {
         }
     }
 
+    void printPieceArray() {
+        System.out.println("BLACK");
+        for (int i = 0; i < 16; i++) {
+            System.out.print("(" + black_piece_x[i] + "," + black_piece_y[i] + ")");
+        }
+        System.out.println("\nWHITE");
+        for (int i = 0; i < 16; i++) {
+            System.out.print("(" + white_piece_x[i] + "," + white_piece_y[i] + ")");
+        }
+
+    }
+
+    void loadPiece() {
+        int blackIdx = 0, whiteIdx = 0;
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                Piece p = getIcon(i, j);
+                if (p.color.equals(PlayerColor.black)) {
+                    black_piece_x[blackIdx] = i;
+                    black_piece_y[blackIdx++] = j;
+                } else if (p.color.equals(PlayerColor.white)) {
+                    white_piece_x[whiteIdx] = i;
+                    white_piece_y[whiteIdx++] = j;
+                }
+            }
+        }
+    }
+
+    void updatePiece(int x_old, int y_old, int x_new, int y_new) {
+        int[] piece_x = getIcon(x_old, y_old).color.equals(PlayerColor.black) ? black_piece_x : white_piece_x;
+        int[] piece_y = getIcon(x_old, y_old).color.equals(PlayerColor.black) ? black_piece_y : white_piece_y;
+
+        for (int i = 0; i < 16; i++) {
+            if (isSamePosition(piece_x[i], piece_y[i], x_old, y_old)) {
+                piece_x[i] = x_new;
+                piece_y[i] = y_new;
+                return;
+            }
+        }
+    }
+
+    void removePiece(int x_old, int y_old) {
+        updatePiece(x_old, y_old, -1, -1);
+    }
+
     void move(int x, int y) {
+        if (getIcon(x, y).color.equals(opponentColor(turn))) removePiece(x, y);
+        updatePiece(selX, selY, x, y);
         setIcon(x, y, getIcon(selX, selY));
         setIcon(selX, selY, piece_null);
     }
 
+    PlayerColor opponentColor(PlayerColor color) {
+        return PlayerColor.values()[1 - color.ordinal()];
+    }
+
     void changeTurn() {
-        turn = turn.equals(PlayerColor.black) ? PlayerColor.white : PlayerColor.black;
+        turn = opponentColor(turn);
         setStatusMessage();
     }
 
@@ -422,5 +479,7 @@ public class ChessBoard {
         status = MagicType.INITIAL;
         turn = PlayerColor.black;
         setStatusMessage();
+        loadPiece();
+        printPieceArray();
     }
 }
