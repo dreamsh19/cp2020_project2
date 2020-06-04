@@ -242,7 +242,7 @@ public class ChessBoard {
 
         public void actionPerformed(ActionEvent e) {    // Only modify here
             // (x, y) is where the click event occured
-            System.out.println(status.toString());
+//            System.out.println(status.toString());
             Piece piece = getIcon(x, y);
             if (piece.color.equals(turn)) {
                 mark(x, y);
@@ -252,7 +252,7 @@ public class ChessBoard {
                     if (isReachable(selX, selY, x, y)) {
                         move(x, y);
                         changeTurn();
-                        printPieceArray();
+//                        printPieceArray();
                     }
                     status = MagicType.INITIAL;
                 }
@@ -480,6 +480,6 @@ public class ChessBoard {
         turn = PlayerColor.black;
         setStatusMessage();
         loadPiece();
-        printPieceArray();
+//        printPieceArray();
     }
 }
