@@ -246,6 +246,7 @@ public class ChessBoard {
                         move(x, y);
                         changeTurn();
                     } else {
+                        unmarkAll();
                         status = MagicType.INITIAL;
                     }
                 }
