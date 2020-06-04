@@ -208,11 +208,22 @@ public class ChessBoard {
 
 
     //======================================================Implement below=================================================================//
-    enum MagicType {MARK, CHECK, CHECKMATE}
+    enum MagicType {INITIAL, MARK, CHECK, CHECKMATE}
 
     ;
     private int selX, selY;
     private boolean check, checkmate, end;
+    private PlayerColor turn;
+    private MagicType status;
+
+    final int[] queen_dx = {-1, -1, 0, 1, 1, 1, 0, -1};
+    final int[] queen_dy = {0, 1, 1, 1, 0, -1, -1, -1};
+    final int[] rook_dx = {-1, 0, 1, 0};
+    final int[] rook_dy = {0, 1, 0, -1};
+    final int[] bishop_dx = {-1, 1, 1, -1};
+    final int[] bishop_dy = {1, 1, -1, -1};
+    final int[] knight_dx = {-2, -1, 1, 2, 2, 1, -1, -2};
+    final int[] knight_dy = {1, 2, 2, 1, -1, -2, -2, -1};
 
     class ButtonListener implements ActionListener {
         int x;
@@ -225,9 +236,174 @@ public class ChessBoard {
 
         public void actionPerformed(ActionEvent e) {    // Only modify here
             // (x, y) is where the click event occured
+            System.out.println(status.toString());
+            Piece piece = getIcon(x, y);
+            if (piece.color.equals(turn)) {
+                mark(x, y);
+            } else {
+                if (status.equals(MagicType.MARK)) {
+                    if (isReachable(selX, selY, x, y)) {
+                        move(x, y);
+                        changeTurn();
+                    } else {
+                        status = MagicType.INITIAL;
+                    }
+                }
+            }
         }
     }
 
+    void move(int x, int y) {
+
+    }
+
+    void changeTurn() {
+
+    }
+
+    void unmarkAll() {
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                unmarkPosition(i, j);
+            }
+        }
+    }
+
+    boolean isSamePosition(int x1, int y1, int x2, int y2) {
+        return x1 == x2 && y1 == y2;
+    }
+
+    Piece getPiece(int x, int y) {
+        try {
+            return getIcon(x, y);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            System.out.println("ArrayIndexOutOfBoundsException");
+            return null;
+        }
+    }
+
+    boolean isReachable(int x_from, int y_from, int x_to, int y_to, boolean mark) {
+        Piece piece = getIcon(x_from, y_from);
+        PieceType type = piece.type;
+        PlayerColor color_from = piece.color;
+
+        // none 일때 아무것도 안해야함.
+        boolean reachable = false;
+
+        int x_temp, y_temp;
+        Piece piece_temp;
+        int x_dir, y_dir;
+        if (type.equals(PieceType.king)) {
+            for (int idx = 0; idx < queen_dx.length; idx++) {
+                x_dir = queen_dx[idx];
+                y_dir = queen_dy[idx];
+                x_temp = x_from + x_dir;
+                y_temp = y_from + y_dir;
+                piece_temp = getPiece(x_temp, y_temp);
+                if (piece_temp == null || piece_temp.color.equals(color_from)) continue;
+                if (mark) markPosition(x_temp, y_temp);
+                if (isSamePosition(x_temp, y_temp, x_to, y_to)) reachable = true;
+            }
+
+        } else if (type.equals(PieceType.queen)) {
+            for (int idx = 0; idx < queen_dx.length; idx++) {
+                x_dir = queen_dx[idx];
+                y_dir = queen_dy[idx];
+                for (int i = 1; i < 8; i++) {
+                    x_temp = x_from + i * x_dir;
+                    y_temp = y_from + i * y_dir;
+                    piece_temp = getPiece(x_temp, y_temp);
+                    if (piece_temp == null || piece_temp.color.equals(color_from)) break;
+                    if (mark) markPosition(x_temp, y_temp);
+                    if (isSamePosition(x_temp, y_temp, x_to, y_to)) reachable = true;
+                    if (!piece_temp.color.equals(PlayerColor.none)) break;
+                }
+            }
+        } else if (type.equals(PieceType.rook)) {
+            for (int idx = 0; idx < rook_dx.length; idx++) {
+                x_dir = rook_dx[idx];
+                y_dir = rook_dy[idx];
+                for (int i = 1; i < 8; i++) {
+                    x_temp = x_from + i * x_dir;
+                    y_temp = y_from + i * y_dir;
+                    piece_temp = getPiece(x_temp, y_temp);
+                    if (piece_temp == null || piece_temp.color.equals(color_from)) break;
+                    if (mark) markPosition(x_temp, y_temp);
+                    if (isSamePosition(x_temp, y_temp, x_to, y_to)) reachable = true;
+                    if (!piece_temp.color.equals(PlayerColor.none)) break;
+                }
+            }
+        } else if (type.equals(PieceType.bishop)) {
+            for (int idx = 0; idx < bishop_dx.length; idx++) {
+                x_dir = bishop_dx[idx];
+                y_dir = bishop_dy[idx];
+                for (int i = 1; i < 8; i++) {
+                    x_temp = x_from + i * x_dir;
+                    y_temp = y_from + i * y_dir;
+                    piece_temp = getPiece(x_temp, y_temp);
+                    if (piece_temp == null || piece_temp.color.equals(color_from)) break;
+                    if (mark) markPosition(x_temp, y_temp);
+                    if (isSamePosition(x_temp, y_temp, x_to, y_to)) reachable = true;
+                    if (!piece_temp.color.equals(PlayerColor.none)) break;
+                }
+            }
+        } else if (type.equals(PieceType.knight)) {
+            for (int idx = 0; idx < knight_dx.length; idx++) {
+                x_dir = knight_dx[idx];
+                y_dir = knight_dy[idx];
+                x_temp = x_from + x_dir;
+                y_temp = y_from + y_dir;
+                piece_temp = getPiece(x_temp, y_temp);
+                if (piece_temp == null || piece_temp.color.equals(color_from)) continue;
+                if (mark) markPosition(x_temp, y_temp);
+                if (isSamePosition(x_temp, y_temp, x_to, y_to)) reachable = true;
+            }
+        } else if (type.equals(PieceType.pawn)) {
+            int max_dx;
+            if (color_from.equals(PlayerColor.black)) {
+                x_dir = 1;
+                max_dx = x_from == 1 ? 2 : 1;
+            } else {
+                x_dir = -1;
+                max_dx = x_from == 6 ? 2 : 1;
+            }
+            for (int i = 1; i <= max_dx; i++) {
+                x_temp = x_from + i * x_dir;
+                y_temp = y_from;
+                piece_temp = getPiece(x_temp, y_temp);
+                if (piece_temp != null && piece_temp.color.equals(PlayerColor.none)) {
+                    if (mark) markPosition(x_temp, y_temp);
+                    if (isSamePosition(x_temp, y_temp, x_to, y_to)) reachable = true;
+                } else {
+                    break;
+                }
+            }
+            for (int dy = -1; dy <= 1; dy += 2) {
+                x_temp = x_from + x_dir;
+                y_temp = y_from + dy;
+                piece_temp = getPiece(x_temp, y_temp);
+                if (piece_temp == null || piece_temp.color.equals(color_from) || piece_temp.color.equals(PlayerColor.none))
+                    continue;
+                if (mark) markPosition(x_temp, y_temp);
+                if (isSamePosition(x_temp, y_temp, x_to, y_to)) reachable = true;
+            }
+
+        }
+
+        return reachable;
+    }
+
+    void mark(int x, int y) {
+        unmarkAll();
+        isReachable(x, y, -1, -1, true);
+        selX = x;
+        selY = y;
+        status = MagicType.MARK;
+    }
+
+    boolean isReachable(int from_x, int from_y, int to_x, int to_y) {
+        return isReachable(from_x, from_y, to_x, to_y, false);
+    }
 
     void onInitiateBoard() {
 
