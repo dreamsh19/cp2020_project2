@@ -405,7 +405,19 @@ public class ChessBoard {
         return isReachable(from_x, from_y, to_x, to_y, false);
     }
 
-    void onInitiateBoard() {
+    void setStatusMessage() {
+        String s = turn.toString().toUpperCase() + "'s TURN";
+        if (checkmate) {
+            s += " / CHECKMATE";
+        } else if (check) {
+            s += " / CHECK";
+        }
+        setStatus(s);
+    }
 
+    void onInitiateBoard() {
+        status = MagicType.INITIAL;
+        turn = PlayerColor.black;
+        setStatusMessage();
     }
 }
