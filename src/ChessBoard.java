@@ -252,7 +252,7 @@ public class ChessBoard {
 
         public void actionPerformed(ActionEvent e) {    // Only modify here
             // (x, y) is where the click event occured
-//            System.out.println(status.toString());
+            if (end) return;
             Piece piece = getIcon(x, y);
             if (piece.color.equals(turn)) {
                 mark(x, y);
@@ -263,9 +263,10 @@ public class ChessBoard {
                         move(x, y);
                         check();
                         checkmate();
+                        end();
                         changeTurn();
                         setStatusMessage();
-//                        printPieceArray();
+
                     }
                     status = MagicType.INITIAL;
                 }
@@ -557,7 +558,7 @@ public class ChessBoard {
                 changeTurn();
                 check();
                 restoreContext();
-                if (!(checkmate = check)){
+                if (!(checkmate = check)) {
                     check = true;
                     return;
                 }
@@ -569,7 +570,7 @@ public class ChessBoard {
     void backupContext() {
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
-                chessBoardStatus_tmp[j][i] = getIcon(i,j);
+                chessBoardStatus_tmp[j][i] = getIcon(i, j);
             }
         }
         black_piece_x_tmp = black_piece_x.clone();
@@ -591,6 +592,22 @@ public class ChessBoard {
         white_piece_y = white_piece_y_tmp;
     }
 
+    void end() {
+        if (end = checkmate) return;
+
+        int[] opponent_piece_x = turn.equals(PlayerColor.white) ? black_piece_x : white_piece_x;
+        int[] opponent_piece_y = turn.equals(PlayerColor.white) ? black_piece_y : white_piece_y;
+
+
+        for (int i = 0; i < 16; i++) {
+            int x = opponent_piece_x[i];
+            int y = opponent_piece_y[i];
+            if (isDeadPiece(x, y)) continue;
+            if (getIcon(x, y).type.equals(PieceType.king)) return;
+        }
+        end = true;
+    }
+
     void setStatusMessage() {
         String s = turn.toString().toUpperCase() + "'s TURN";
         if (checkmate) {
@@ -602,10 +619,10 @@ public class ChessBoard {
     }
 
     void onInitiateBoard() {
+        check = checkmate = end = false;
         status = MagicType.INITIAL;
         turn = PlayerColor.black;
         setStatusMessage();
         loadPiece();
-//        printPieceArray();
     }
 }
