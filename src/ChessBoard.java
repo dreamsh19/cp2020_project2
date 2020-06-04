@@ -1,6 +1,8 @@
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.Iterator;
 import javax.swing.*;
 import javax.swing.border.*;
 
@@ -24,8 +26,6 @@ public class ChessBoard {
         initPieceImages();
         initBoardStatus();
         initializeGui();
-        initiateBoard();
-
     }
 
     public final void initBoardStatus() {
@@ -222,6 +222,16 @@ public class ChessBoard {
     private int[] white_piece_x = new int[16];
     private int[] white_piece_y = new int[16];
 
+    // temporal storage for checkmate()
+    private Piece[][] chessBoardStatus_tmp = new Piece[8][8];
+    private int[] black_piece_x_tmp = new int[16];
+    private int[] black_piece_y_tmp = new int[16];
+    private int[] white_piece_x_tmp = new int[16];
+    private int[] white_piece_y_tmp = new int[16];
+
+    ArrayList<Integer> possibleMove = new ArrayList<>();
+
+
     final int[] queen_dx = {-1, -1, 0, 1, 1, 1, 0, -1};
     final int[] queen_dy = {0, 1, 1, 1, 0, -1, -1, -1};
     final int[] rook_dx = {-1, 0, 1, 0};
@@ -252,7 +262,9 @@ public class ChessBoard {
                     if (isReachable(selX, selY, x, y)) {
                         move(x, y);
                         check();
+//                        checkmate();
                         changeTurn();
+                        setStatusMessage();
 //                        printPieceArray();
                     }
                     status = MagicType.INITIAL;
@@ -319,7 +331,6 @@ public class ChessBoard {
 
     void changeTurn() {
         turn = opponentColor(turn);
-        setStatusMessage();
     }
 
     void unmarkAll() {
@@ -334,6 +345,10 @@ public class ChessBoard {
         return x1 == x2 && y1 == y2;
     }
 
+    boolean isDeadPiece(int x, int y) {
+        return x == -1 && y == -1;
+    }
+
     Piece getPiece(int x, int y) {
         try {
             return getIcon(x, y);
@@ -343,55 +358,50 @@ public class ChessBoard {
         }
     }
 
-    boolean isReachable(int x_from, int y_from, int x_to, int y_to, boolean mark) {
-        Piece piece = getIcon(x_from, y_from);
+    int xy2int(int x, int y) {
+        return x << 3 | y;
+    }
+
+    int int2x(int i) {
+        return (i >> 3) & 0x7;
+    }
+
+    int int2y(int i) {
+        return i & 0x7;
+    }
+
+    void addPossibleMove(int x, int y) {
+        possibleMove.add(xy2int(x, y));
+    }
+
+    void searchPossibleMove(int x, int y) {
+        possibleMove.clear();
+        Piece piece = getIcon(x, y);
         PieceType type = piece.type;
         PlayerColor color_from = piece.color;
-
-        // none 일때 아무것도 안해야함.
-        boolean reachable = false;
-
-        int x_temp, y_temp;
+        int x_dir, y_dir, x_temp, y_temp;
         Piece piece_temp;
-        int x_dir, y_dir;
         if (type.equals(PieceType.king)) {
             for (int idx = 0; idx < queen_dx.length; idx++) {
                 x_dir = queen_dx[idx];
                 y_dir = queen_dy[idx];
-                x_temp = x_from + x_dir;
-                y_temp = y_from + y_dir;
+                x_temp = x + x_dir;
+                y_temp = y + y_dir;
                 piece_temp = getPiece(x_temp, y_temp);
                 if (piece_temp == null || piece_temp.color.equals(color_from)) continue;
-                if (mark) markPosition(x_temp, y_temp);
-                if (isSamePosition(x_temp, y_temp, x_to, y_to)) reachable = true;
+                addPossibleMove(x_temp, y_temp);
             }
-
         } else if (type.equals(PieceType.queen)) {
             for (int idx = 0; idx < queen_dx.length; idx++) {
                 x_dir = queen_dx[idx];
                 y_dir = queen_dy[idx];
                 for (int i = 1; i < 8; i++) {
-                    x_temp = x_from + i * x_dir;
-                    y_temp = y_from + i * y_dir;
+                    x_temp = x + i * x_dir;
+                    y_temp = y + i * y_dir;
                     piece_temp = getPiece(x_temp, y_temp);
                     if (piece_temp == null || piece_temp.color.equals(color_from)) break;
-                    if (mark) markPosition(x_temp, y_temp);
-                    if (isSamePosition(x_temp, y_temp, x_to, y_to)) reachable = true;
-                    if (!piece_temp.color.equals(PlayerColor.none)) break;
-                }
-            }
-        } else if (type.equals(PieceType.rook)) {
-            for (int idx = 0; idx < rook_dx.length; idx++) {
-                x_dir = rook_dx[idx];
-                y_dir = rook_dy[idx];
-                for (int i = 1; i < 8; i++) {
-                    x_temp = x_from + i * x_dir;
-                    y_temp = y_from + i * y_dir;
-                    piece_temp = getPiece(x_temp, y_temp);
-                    if (piece_temp == null || piece_temp.color.equals(color_from)) break;
-                    if (mark) markPosition(x_temp, y_temp);
-                    if (isSamePosition(x_temp, y_temp, x_to, y_to)) reachable = true;
-                    if (!piece_temp.color.equals(PlayerColor.none)) break;
+                    addPossibleMove(x_temp, y_temp);
+                    if (piece_temp.color.equals(opponentColor(color_from))) break;
                 }
             }
         } else if (type.equals(PieceType.bishop)) {
@@ -399,58 +409,80 @@ public class ChessBoard {
                 x_dir = bishop_dx[idx];
                 y_dir = bishop_dy[idx];
                 for (int i = 1; i < 8; i++) {
-                    x_temp = x_from + i * x_dir;
-                    y_temp = y_from + i * y_dir;
+                    x_temp = x + i * x_dir;
+                    y_temp = y + i * y_dir;
                     piece_temp = getPiece(x_temp, y_temp);
                     if (piece_temp == null || piece_temp.color.equals(color_from)) break;
-                    if (mark) markPosition(x_temp, y_temp);
-                    if (isSamePosition(x_temp, y_temp, x_to, y_to)) reachable = true;
-                    if (!piece_temp.color.equals(PlayerColor.none)) break;
+                    addPossibleMove(x_temp, y_temp);
+                    if (piece_temp.color.equals(opponentColor(color_from))) break;
                 }
             }
         } else if (type.equals(PieceType.knight)) {
             for (int idx = 0; idx < knight_dx.length; idx++) {
                 x_dir = knight_dx[idx];
                 y_dir = knight_dy[idx];
-                x_temp = x_from + x_dir;
-                y_temp = y_from + y_dir;
+                x_temp = x + x_dir;
+                y_temp = y + y_dir;
                 piece_temp = getPiece(x_temp, y_temp);
                 if (piece_temp == null || piece_temp.color.equals(color_from)) continue;
-                if (mark) markPosition(x_temp, y_temp);
-                if (isSamePosition(x_temp, y_temp, x_to, y_to)) reachable = true;
+                addPossibleMove(x_temp, y_temp);
+            }
+        } else if (type.equals(PieceType.rook)) {
+            for (int idx = 0; idx < rook_dx.length; idx++) {
+                x_dir = rook_dx[idx];
+                y_dir = rook_dy[idx];
+                for (int i = 1; i < 8; i++) {
+                    x_temp = x + i * x_dir;
+                    y_temp = y + i * y_dir;
+                    piece_temp = getPiece(x_temp, y_temp);
+                    if (piece_temp == null || piece_temp.color.equals(color_from)) break;
+                    addPossibleMove(x_temp, y_temp);
+                    if (piece_temp.color.equals(opponentColor(color_from))) break;
+                }
             }
         } else if (type.equals(PieceType.pawn)) {
             int max_dx;
             if (color_from.equals(PlayerColor.black)) {
                 x_dir = 1;
-                max_dx = x_from == 1 ? 2 : 1;
+                max_dx = x == 1 ? 2 : 1;
             } else {
                 x_dir = -1;
-                max_dx = x_from == 6 ? 2 : 1;
+                max_dx = x == 6 ? 2 : 1;
             }
             for (int i = 1; i <= max_dx; i++) {
-                x_temp = x_from + i * x_dir;
-                y_temp = y_from;
+                x_temp = x + i * x_dir;
+                y_temp = y;
                 piece_temp = getPiece(x_temp, y_temp);
                 if (piece_temp != null && piece_temp.color.equals(PlayerColor.none)) {
-                    if (mark) markPosition(x_temp, y_temp);
-                    if (isSamePosition(x_temp, y_temp, x_to, y_to)) reachable = true;
+                    addPossibleMove(x_temp, y_temp);
                 } else {
                     break;
                 }
             }
             for (int dy = -1; dy <= 1; dy += 2) {
-                x_temp = x_from + x_dir;
-                y_temp = y_from + dy;
+                x_temp = x + x_dir;
+                y_temp = y + dy;
                 piece_temp = getPiece(x_temp, y_temp);
-                if (piece_temp == null || piece_temp.color.equals(color_from) || piece_temp.color.equals(PlayerColor.none))
-                    continue;
-                if (mark) markPosition(x_temp, y_temp);
-                if (isSamePosition(x_temp, y_temp, x_to, y_to)) reachable = true;
+                if (piece_temp != null && piece_temp.color.equals(opponentColor(color_from)))
+                    addPossibleMove(x_temp, y_temp);
             }
-
+        } else {
+            //none
         }
+    }
 
+    boolean isReachable(int x_from, int y_from, int x_to, int y_to, boolean mark) {
+        searchPossibleMove(x_from, y_from);
+        Iterator<Integer> moves = possibleMove.iterator();
+        boolean reachable = false;
+        int x_target, y_target;
+        while (moves.hasNext()) {
+            int i = moves.next();
+            x_target = int2x(i);
+            y_target = int2y(i);
+            if (mark) markPosition(x_target, y_target);
+            if (isSamePosition(x_target, y_target, x_to, y_to)) reachable = true;
+        }
         return reachable;
     }
 
@@ -478,16 +510,20 @@ public class ChessBoard {
         for (int i = 0; i < 16; i++) {
             king_x = opponent_piece_x[i];
             king_y = opponent_piece_y[i];
-            if (isSamePosition(king_x, king_y, -1, -1)) continue;// dead piece
+            if (isDeadPiece(king_x, king_y)) continue;
             if (getIcon(king_x, king_y).type.equals(PieceType.king)) break;
         }
 
         for (int i = 0; i < 16; i++) {
             int x = piece_x[i];
             int y = piece_y[i];
-            if (isSamePosition(x, y, -1, -1)) continue;// dead piece
+            if (isDeadPiece(x, y)) continue;
             if (check = isReachable(x, y, king_x, king_y)) return;
         }
+    }
+
+    void checkmate() {
+
     }
 
 
