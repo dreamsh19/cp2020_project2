@@ -251,6 +251,7 @@ public class ChessBoard {
                     unmarkAll();
                     if (isReachable(selX, selY, x, y)) {
                         move(x, y);
+                        check();
                         changeTurn();
 //                        printPieceArray();
                     }
@@ -464,6 +465,31 @@ public class ChessBoard {
     boolean isReachable(int from_x, int from_y, int to_x, int to_y) {
         return isReachable(from_x, from_y, to_x, to_y, false);
     }
+
+    void check() {
+
+        int[] piece_x = turn.equals(PlayerColor.black) ? black_piece_x : white_piece_x;
+        int[] piece_y = turn.equals(PlayerColor.black) ? black_piece_y : white_piece_y;
+        int[] opponent_piece_x = turn.equals(PlayerColor.white) ? black_piece_x : white_piece_x;
+        int[] opponent_piece_y = turn.equals(PlayerColor.white) ? black_piece_y : white_piece_y;
+
+        int king_x = -1, king_y = -1;
+
+        for (int i = 0; i < 16; i++) {
+            king_x = opponent_piece_x[i];
+            king_y = opponent_piece_y[i];
+            if (isSamePosition(king_x, king_y, -1, -1)) continue;// dead piece
+            if (getIcon(king_x, king_y).type.equals(PieceType.king)) break;
+        }
+
+        for (int i = 0; i < 16; i++) {
+            int x = piece_x[i];
+            int y = piece_y[i];
+            if (isSamePosition(x, y, -1, -1)) continue;// dead piece
+            if (check = isReachable(x, y, king_x, king_y)) return;
+        }
+    }
+
 
     void setStatusMessage() {
         String s = turn.toString().toUpperCase() + "'s TURN";
