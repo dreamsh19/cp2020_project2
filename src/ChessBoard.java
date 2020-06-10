@@ -1,8 +1,8 @@
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import javax.swing.*;
 import javax.swing.border.*;
 
@@ -229,7 +229,7 @@ public class ChessBoard {
     private int[] white_piece_x_tmp = new int[16];
     private int[] white_piece_y_tmp = new int[16];
 
-    ArrayList<Integer> possibleMove = new ArrayList<>();
+    LinkedList<Integer> possibleMove = new LinkedList<>();
 
 
     final int[] queen_dx = {-1, -1, 0, 1, 1, 1, 0, -1};
@@ -545,7 +545,7 @@ public class ChessBoard {
             selY = opponent_piece_y[i];
             if (isDeadPiece(selX, selY)) continue;
             searchPossibleMove(selX, selY);
-            ArrayList<Integer> possibleMoves = (ArrayList<Integer>) possibleMove.clone();
+            LinkedList<Integer> possibleMoves = (LinkedList<Integer>) possibleMove.clone();
             Iterator<Integer> moves = possibleMoves.iterator();
             while (moves.hasNext()) {
                 int num = moves.next();
