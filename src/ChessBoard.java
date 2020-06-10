@@ -217,17 +217,15 @@ public class ChessBoard {
     private MagicType status;
     final Piece piece_null = new Piece();
 
-    private int[] black_piece_x = new int[16];
-    private int[] black_piece_y = new int[16];
-    private int[] white_piece_x = new int[16];
-    private int[] white_piece_y = new int[16];
+    // piece_x[0], piece_y[0] : black
+    // piece_x[1], piece_y[1] : white
+    private int[][] pieceX = new int[2][16];
+    private int[][] pieceY = new int[2][16];
 
     // temporal storage for checkmate()
     private Piece[][] chessBoardStatus_tmp = new Piece[8][8];
-    private int[] black_piece_x_tmp = new int[16];
-    private int[] black_piece_y_tmp = new int[16];
-    private int[] white_piece_x_tmp = new int[16];
-    private int[] white_piece_y_tmp = new int[16];
+    private int[][] piece_x_tmp = new int[2][16];
+    private int[][] piece_y_tmp = new int[2][16];
 
     LinkedList<Integer> possibleMove = new LinkedList<>();
 
@@ -274,17 +272,6 @@ public class ChessBoard {
         }
     }
 
-    void printPieceArray() {
-        System.out.println("BLACK");
-        for (int i = 0; i < 16; i++) {
-            System.out.print("(" + black_piece_x[i] + "," + black_piece_y[i] + ")");
-        }
-        System.out.println("\nWHITE");
-        for (int i = 0; i < 16; i++) {
-            System.out.print("(" + white_piece_x[i] + "," + white_piece_y[i] + ")");
-        }
-
-    }
 
     void loadPiece() {
         int blackIdx = 0, whiteIdx = 0;
@@ -292,19 +279,28 @@ public class ChessBoard {
             for (int j = 0; j < 8; j++) {
                 Piece p = getIcon(i, j);
                 if (p.color.equals(PlayerColor.black)) {
-                    black_piece_x[blackIdx] = i;
-                    black_piece_y[blackIdx++] = j;
+                    pieceX[0][blackIdx] = i;
+                    pieceY[0][blackIdx++] = j;
                 } else if (p.color.equals(PlayerColor.white)) {
-                    white_piece_x[whiteIdx] = i;
-                    white_piece_y[whiteIdx++] = j;
+                    pieceX[1][whiteIdx] = i;
+                    pieceY[1][whiteIdx++] = j;
                 }
             }
         }
     }
 
+    int[] getPieceX(PlayerColor color) {
+        return pieceX[color2idx(color)];
+    }
+
+    int[] getPieceY(PlayerColor color) {
+        return pieceY[color2idx(color)];
+    }
+
     void updatePiece(int x_old, int y_old, int x_new, int y_new) {
-        int[] piece_x = getIcon(x_old, y_old).color.equals(PlayerColor.black) ? black_piece_x : white_piece_x;
-        int[] piece_y = getIcon(x_old, y_old).color.equals(PlayerColor.black) ? black_piece_y : white_piece_y;
+        Piece p = getIcon(x_old, y_old);
+        int[] piece_x = getPieceX(p.color);
+        int[] piece_y = getPieceY(p.color);
 
         for (int i = 0; i < 16; i++) {
             if (isSamePosition(piece_x[i], piece_y[i], x_old, y_old)) {
@@ -336,7 +332,7 @@ public class ChessBoard {
     }
 
     PlayerColor opponentColor(PlayerColor color) {
-        return PlayerColor.values()[1 - color.ordinal()];
+        return PlayerColor.values()[1 - color2idx(color)];
     }
 
     void changeTurn() {
@@ -371,6 +367,10 @@ public class ChessBoard {
         chessBoardStatus[y][x] = piece;
     }
 
+
+    int color2idx(PlayerColor color) {
+        return color.ordinal();
+    }
 
     int xy2int(int x, int y) {
         return x << 3 | y;
@@ -514,10 +514,10 @@ public class ChessBoard {
 
     void check() {
 
-        int[] piece_x = turn.equals(PlayerColor.black) ? black_piece_x : white_piece_x;
-        int[] piece_y = turn.equals(PlayerColor.black) ? black_piece_y : white_piece_y;
-        int[] opponent_piece_x = turn.equals(PlayerColor.white) ? black_piece_x : white_piece_x;
-        int[] opponent_piece_y = turn.equals(PlayerColor.white) ? black_piece_y : white_piece_y;
+        int[] piece_x = getPieceX(turn);
+        int[] piece_y = getPieceY(turn);
+        int[] opponent_piece_x = getPieceX(opponentColor(turn));
+        int[] opponent_piece_y = getPieceY(opponentColor(turn));
 
         int king_x = -1, king_y = -1;
 
@@ -538,8 +538,8 @@ public class ChessBoard {
 
     void checkmate() {
         if (!check) return;
-        int[] opponent_piece_x = turn.equals(PlayerColor.white) ? black_piece_x : white_piece_x;
-        int[] opponent_piece_y = turn.equals(PlayerColor.white) ? black_piece_y : white_piece_y;
+        int[] opponent_piece_x = getPieceX(opponentColor(turn));
+        int[] opponent_piece_y = getPieceY(opponentColor(turn));
         for (int i = 0; i < 16; i++) {
             selX = opponent_piece_x[i];
             selY = opponent_piece_y[i];
@@ -572,30 +572,31 @@ public class ChessBoard {
                 chessBoardStatus_tmp[j][i] = getIcon(i, j);
             }
         }
-        black_piece_x_tmp = black_piece_x.clone();
-        black_piece_y_tmp = black_piece_y.clone();
-        white_piece_x_tmp = white_piece_x.clone();
-        white_piece_y_tmp = white_piece_y.clone();
+
+        piece_x_tmp[0] = pieceX[0].clone();
+        piece_y_tmp[0] = pieceY[0].clone();
+        piece_x_tmp[1] = pieceX[1].clone();
+        piece_y_tmp[1] = pieceY[1].clone();
     }
 
     void restoreContext() {
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
-                chessBoardStatus[j][i] = chessBoardStatus_tmp[j][i];
+                setPiece(i, j, chessBoardStatus_tmp[j][i]);
             }
         }
-//        chessBoardStatus = chessBoardStatus_tmp;
-        black_piece_x = black_piece_x_tmp;
-        black_piece_y = black_piece_y_tmp;
-        white_piece_x = white_piece_x_tmp;
-        white_piece_y = white_piece_y_tmp;
+        pieceX[0] = piece_x_tmp[0];
+        pieceY[0] = piece_y_tmp[0];
+        pieceX[1] = piece_x_tmp[1];
+        pieceY[1] = piece_y_tmp[1];
+
     }
 
     void end() {
         if (end = checkmate) return;
 
-        int[] opponent_piece_x = turn.equals(PlayerColor.white) ? black_piece_x : white_piece_x;
-        int[] opponent_piece_y = turn.equals(PlayerColor.white) ? black_piece_y : white_piece_y;
+        int[] opponent_piece_x = getPieceX(opponentColor(turn));
+        int[] opponent_piece_y = getPieceY(opponentColor(turn));
 
 
         for (int i = 0; i < 16; i++) {
@@ -608,13 +609,13 @@ public class ChessBoard {
     }
 
     void setStatusMessage() {
-        String s = turn.toString().toUpperCase() + "'s TURN";
+        String msg = turn.toString().toUpperCase() + "'s TURN";
         if (checkmate) {
-            s += " / CHECKMATE";
+            msg += " / CHECKMATE";
         } else if (check) {
-            s += " / CHECK";
+            msg += " / CHECK";
         }
-        setStatus(s);
+        setStatus(msg);
     }
 
     void onInitiateBoard() {
