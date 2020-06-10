@@ -363,7 +363,6 @@ public class ChessBoard {
         try {
             return getIcon(x, y);
         } catch (ArrayIndexOutOfBoundsException e) {
-            System.out.println("ArrayIndexOutOfBoundsException");
             return null;
         }
     }
