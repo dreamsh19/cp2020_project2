@@ -1,7 +1,6 @@
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.util.Iterator;
 import java.util.LinkedList;
 import javax.swing.*;
 import javax.swing.border.*;
@@ -250,11 +249,11 @@ public class ChessBoard {
             // (x, y) is where the click event occured
             if (end) return;
             Piece piece = getIcon(x, y);
+            unmarkAll();
             if (piece.color.equals(turn)) {
                 mark(x, y);
             } else {
                 if (status.equals(MagicType.MARK)) {
-                    unmarkAll();
                     if (isReachable(selX, selY, x, y)) {
                         move(selX, selY, x, y);
                         check();
@@ -262,7 +261,6 @@ public class ChessBoard {
                         end();
                         changeTurn();
                         setStatusMessage();
-
                     }
                     status = MagicType.INITIAL;
                 }
@@ -490,11 +488,8 @@ public class ChessBoard {
     }
 
     void mark(int x, int y) {
-        unmarkAll();
         searchPossibleMove(x,y);
-        Iterator<Integer> moves = possibleMove.iterator();
-        while (moves.hasNext()) {
-            int pos = moves.next();
+        for(int pos : possibleMove){
             markPosition(int2x(pos), int2y(pos));
         }
         selX = x;
@@ -537,11 +532,9 @@ public class ChessBoard {
             if (isDeadPiece(selX, selY)) continue;
             searchPossibleMove(selX, selY);
             LinkedList<Integer> possibleMoves = (LinkedList<Integer>) possibleMove.clone();
-            Iterator<Integer> moves = possibleMoves.iterator();
-            while (moves.hasNext()) {
-                int num = moves.next();
-                int x_target = int2x(num);
-                int y_target = int2y(num);
+            for(int pos : possibleMoves){
+                int x_target = int2x(pos);
+                int y_target = int2y(pos);
 
                 savePosition(x_target, y_target);
                 move(selX, selY, x_target, y_target);
