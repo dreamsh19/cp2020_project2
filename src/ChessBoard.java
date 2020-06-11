@@ -484,31 +484,22 @@ public class ChessBoard {
         }
     }
 
-    boolean isReachable(int x_from, int y_from, int x_to, int y_to, boolean mark) {
+    boolean isReachable(int x_from, int y_from, int x_to, int y_to) {
         searchPossibleMove(x_from, y_from);
-        Iterator<Integer> moves = possibleMove.iterator();
-        boolean reachable = false;
-        int x_target, y_target;
-        while (moves.hasNext()) {
-            int i = moves.next();
-            x_target = int2x(i);
-            y_target = int2y(i);
-            if (mark) markPosition(x_target, y_target);
-            if (isSamePosition(x_target, y_target, x_to, y_to)) reachable = true;
-        }
-        return reachable;
+        return possibleMove.contains(xy2int(x_to,y_to));
     }
 
     void mark(int x, int y) {
         unmarkAll();
-        isReachable(x, y, -1, -1, true);
+        searchPossibleMove(x,y);
+        Iterator<Integer> moves = possibleMove.iterator();
+        while (moves.hasNext()) {
+            int pos = moves.next();
+            markPosition(int2x(pos), int2y(pos));
+        }
         selX = x;
         selY = y;
         status = MagicType.MARK;
-    }
-
-    boolean isReachable(int from_x, int from_y, int to_x, int to_y) {
-        return isReachable(from_x, from_y, to_x, to_y, false);
     }
 
     void check() {
