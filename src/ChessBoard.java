@@ -256,7 +256,7 @@ public class ChessBoard {
                 if (status.equals(MagicType.MARK)) {
                     unmarkAll();
                     if (isReachable(selX, selY, x, y)) {
-                        move(selX, selY, x, y, false);
+                        move(selX, selY, x, y);
                         check();
                         checkmate();
                         end();
@@ -313,11 +313,11 @@ public class ChessBoard {
         updatePiece(x_old, y_old, -1, -1);
     }
 
-    void move(int x_from, int y_from, int x_to, int y_to, boolean onCheckmate) {
+    void move(int x_from, int y_from, int x_to, int y_to) {
         Piece p = getIcon(x_from, y_from);
         if (getIcon(x_to, y_to).color.equals(opponentColor(p.color))) removePiece(x_to, y_to);
         updatePiece(x_from, y_from, x_to, y_to);
-        if (onCheckmate) {
+        if (status.equals(MagicType.CHECKMATE)) {
             setPiece(x_to, y_to, p);
             setPiece(x_from, y_from, piece_null);
         } else {
@@ -537,6 +537,7 @@ public class ChessBoard {
 
     void checkmate() {
         if (!check) return;
+        status = MagicType.CHECKMATE;
         int[] opponent_piece_x = getPieceX(opponentColor(turn));
         int[] opponent_piece_y = getPieceY(opponentColor(turn));
         for (int i = 0; i < 16; i++) {
@@ -552,9 +553,9 @@ public class ChessBoard {
                 int y_target = int2y(num);
 
                 savePosition(x_target, y_target);
-                move(selX, selY, x_target, y_target, true);
+                move(selX, selY, x_target, y_target);
                 check();
-                move(x_target, y_target, selX, selY, true);
+                move(x_target, y_target, selX, selY);
                 rollbackPosition(x_target, y_target);
 
                 if (!(checkmate = check)) {
