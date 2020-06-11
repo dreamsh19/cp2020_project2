@@ -218,8 +218,7 @@ public class ChessBoard {
 
     // piece_x[0], piece_y[0] : black
     // piece_x[1], piece_y[1] : white
-    private int[][] pieceX = new int[2][16];
-    private int[][] pieceY = new int[2][16];
+    private int[][] positions = new int[2][16];
 
     // temporal storage for checkmate()
     Piece piece_tmp;
@@ -269,52 +268,45 @@ public class ChessBoard {
     }
 
 
-    void loadPiece() {
+    void loadPositions() {
         int blackIdx = 0, whiteIdx = 0;
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
                 Piece p = getIcon(i, j);
+                int pos = xy2pos(i, j);
                 if (p.color.equals(PlayerColor.black)) {
-                    pieceX[0][blackIdx] = i;
-                    pieceY[0][blackIdx++] = j;
+                    positions[0][blackIdx++] = pos;
                 } else if (p.color.equals(PlayerColor.white)) {
-                    pieceX[1][whiteIdx] = i;
-                    pieceY[1][whiteIdx++] = j;
+                    positions[1][whiteIdx++] = pos;
                 }
             }
         }
     }
 
-    int[] getPieceX(PlayerColor color) {
-        return pieceX[color2idx(color)];
+    int[] getPositions(PlayerColor color) {
+        return positions[color2idx(color)];
     }
 
-    int[] getPieceY(PlayerColor color) {
-        return pieceY[color2idx(color)];
-    }
-
-    void updatePiece(int x_old, int y_old, int x_new, int y_new) {
+    void updatePosition(int x_old, int y_old, int x_new, int y_new) {
         Piece p = getIcon(x_old, y_old);
-        int[] piece_x = getPieceX(p.color);
-        int[] piece_y = getPieceY(p.color);
+        int[] positions = getPositions(p.color);
 
         for (int i = 0; i < 16; i++) {
-            if (isSamePosition(piece_x[i], piece_y[i], x_old, y_old)) {
-                piece_x[i] = x_new;
-                piece_y[i] = y_new;
+            if (isSamePosition(positions[i], xy2pos(x_old, y_old))) {
+                positions[i] = xy2pos(x_new, y_new);
                 return;
             }
         }
     }
 
-    void removePiece(int x_old, int y_old) {
-        updatePiece(x_old, y_old, -1, -1);
+    void removePosition(int x_old, int y_old) {
+        updatePosition(x_old, y_old, -1, -1);
     }
 
     void move(int x_from, int y_from, int x_to, int y_to) {
         Piece p = getIcon(x_from, y_from);
-        if (getIcon(x_to, y_to).color.equals(opponentColor(p.color))) removePiece(x_to, y_to);
-        updatePiece(x_from, y_from, x_to, y_to);
+        if (getIcon(x_to, y_to).color.equals(opponentColor(p.color))) removePosition(x_to, y_to);
+        updatePosition(x_from, y_from, x_to, y_to);
         if (status.equals(MagicType.CHECKMATE)) {
             setPiece(x_to, y_to, p);
             setPiece(x_from, y_from, piece_null);
@@ -340,15 +332,15 @@ public class ChessBoard {
         }
     }
 
-    boolean isSamePosition(int x1, int y1, int x2, int y2) {
-        return x1 == x2 && y1 == y2;
+    boolean isSamePosition(int pos1, int pos2) {
+        return pos1 == pos2;
     }
 
-    boolean isDeadPiece(int x, int y) {
-        return x == -1 && y == -1;
+    boolean isDeadPosition(int pos) {
+        return pos == -1;
     }
 
-    boolean isBlankPiece(Piece piece){
+    boolean isBlankPiece(Piece piece) {
         return piece.color.equals(PlayerColor.none);
     }
 
@@ -364,25 +356,24 @@ public class ChessBoard {
         chessBoardStatus[y][x] = piece;
     }
 
-
     int color2idx(PlayerColor color) {
         return color.ordinal();
     }
 
-    int xy2int(int x, int y) {
+    int xy2pos(int x, int y) {
         return x << 3 | y;
     }
 
-    int int2x(int i) {
+    int pos2x(int i) {
         return (i >> 3) & 0x7;
     }
 
-    int int2y(int i) {
+    int pos2y(int i) {
         return i & 0x7;
     }
 
     void addPossibleMove(int x, int y) {
-        possibleMove.add(xy2int(x, y));
+        possibleMove.add(xy2pos(x, y));
     }
 
     void searchPossibleMove(int x, int y) {
@@ -484,39 +475,42 @@ public class ChessBoard {
 
     boolean isReachable(int x_from, int y_from, int x_to, int y_to) {
         searchPossibleMove(x_from, y_from);
-        return possibleMove.contains(xy2int(x_to,y_to));
+        return possibleMove.contains(xy2pos(x_to, y_to));
     }
 
     void mark(int x, int y) {
-        searchPossibleMove(x,y);
-        for(int pos : possibleMove){
-            markPosition(int2x(pos), int2y(pos));
+        searchPossibleMove(x, y);
+        for (int pos : possibleMove) {
+            markPosition(pos2x(pos), pos2y(pos));
         }
         selX = x;
         selY = y;
         status = MagicType.MARK;
     }
 
+    int findOpponentKing() {
+        int[] opponent_positions = getPositions(opponentColor(turn));
+        for (int pos : opponent_positions) {
+            if (isDeadPosition(pos)) continue;
+            int king_x = pos2x(pos);
+            int king_y = pos2y(pos);
+            if (getIcon(king_x, king_y).type.equals(PieceType.king)) return pos;
+        }
+        return -1;
+    }
+
     void check() {
 
-        int[] piece_x = getPieceX(turn);
-        int[] piece_y = getPieceY(turn);
-        int[] opponent_piece_x = getPieceX(opponentColor(turn));
-        int[] opponent_piece_y = getPieceY(opponentColor(turn));
+        int[] positions = getPositions(turn);
 
-        int king_x = -1, king_y = -1;
+        int king_pos = findOpponentKing();
+        int king_x = pos2x(king_pos);
+        int king_y = pos2y(king_pos);
 
-        for (int i = 0; i < 16; i++) {
-            king_x = opponent_piece_x[i];
-            king_y = opponent_piece_y[i];
-            if (isDeadPiece(king_x, king_y)) continue;
-            if (getIcon(king_x, king_y).type.equals(PieceType.king)) break;
-        }
-
-        for (int i = 0; i < 16; i++) {
-            int x = piece_x[i];
-            int y = piece_y[i];
-            if (isDeadPiece(x, y)) continue;
+        for (int pos : positions) {
+            if (isDeadPosition(pos)) continue;
+            int x = pos2x(pos);
+            int y = pos2y(pos);
             if (check = isReachable(x, y, king_x, king_y)) return;
         }
     }
@@ -524,17 +518,16 @@ public class ChessBoard {
     void checkmate() {
         if (!check) return;
         status = MagicType.CHECKMATE;
-        int[] opponent_piece_x = getPieceX(opponentColor(turn));
-        int[] opponent_piece_y = getPieceY(opponentColor(turn));
-        for (int i = 0; i < 16; i++) {
-            selX = opponent_piece_x[i];
-            selY = opponent_piece_y[i];
-            if (isDeadPiece(selX, selY)) continue;
+        int[] opponent_positions = getPositions(opponentColor(turn));
+        for (int pos : opponent_positions) {
+            if (isDeadPosition(pos)) continue;
+            selX = pos2x(pos);
+            selY = pos2y(pos);
             searchPossibleMove(selX, selY);
             LinkedList<Integer> possibleMoves = (LinkedList<Integer>) possibleMove.clone();
-            for(int pos : possibleMoves){
-                int x_target = int2x(pos);
-                int y_target = int2y(pos);
+            for (int pos_to : possibleMoves) {
+                int x_target = pos2x(pos_to);
+                int y_target = pos2y(pos_to);
 
                 savePosition(x_target, y_target);
                 move(selX, selY, x_target, y_target);
@@ -555,11 +548,10 @@ public class ChessBoard {
 
         piece_tmp = getIcon(x, y);
         if (!isBlankPiece(piece_tmp)) {
-            int[] piece_x = getPieceX(piece_tmp.color);
-            int[] piece_y = getPieceY(piece_tmp.color);
+            int[] positions = getPositions(piece_tmp.color);
 
             for (int i = 0; i < 16; i++) {
-                if (isSamePosition(x, y, piece_x[i], piece_y[i])) {
+                if (isSamePosition(xy2pos(x, y), positions[i])) {
                     idx_tmp = i;
                     break;
                 }
@@ -569,29 +561,18 @@ public class ChessBoard {
 
     void rollbackPosition(int x, int y) {
 
-        if(!isBlankPiece(piece_tmp)){
+        if (!isBlankPiece(piece_tmp)) {
             setPiece(x, y, piece_tmp);
-            int[] piece_x = getPieceX(piece_tmp.color);
-            int[] piece_y = getPieceY(piece_tmp.color);
-            piece_x[idx_tmp] = x;
-            piece_y[idx_tmp] = y;
+            int[] positions = getPositions(piece_tmp.color);
+            positions[idx_tmp] = xy2pos(x, y);
         }
     }
 
     void end() {
         if (end = checkmate) return;
 
-        int[] opponent_piece_x = getPieceX(opponentColor(turn));
-        int[] opponent_piece_y = getPieceY(opponentColor(turn));
-
-
-        for (int i = 0; i < 16; i++) {
-            int x = opponent_piece_x[i];
-            int y = opponent_piece_y[i];
-            if (isDeadPiece(x, y)) continue;
-            if (getIcon(x, y).type.equals(PieceType.king)) return;
-        }
-        end = true;
+        int king_pos = findOpponentKing();
+        end = isDeadPosition(king_pos);
     }
 
     void setStatusMessage() {
@@ -609,6 +590,6 @@ public class ChessBoard {
         status = MagicType.INITIAL;
         turn = PlayerColor.black;
         setStatusMessage();
-        loadPiece();
+        loadPositions();
     }
 }
