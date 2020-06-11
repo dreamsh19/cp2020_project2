@@ -223,12 +223,10 @@ public class ChessBoard {
     private int[][] pieceY = new int[2][16];
 
     // temporal storage for checkmate()
-    private Piece[][] chessBoardStatus_tmp = new Piece[8][8];
-    private int[][] piece_x_tmp = new int[2][16];
-    private int[][] piece_y_tmp = new int[2][16];
+    Piece piece_tmp;
+    int idx_tmp;
 
     LinkedList<Integer> possibleMove = new LinkedList<>();
-
 
     final int[] queen_dx = {-1, -1, 0, 1, 1, 1, 0, -1};
     final int[] queen_dy = {0, 1, 1, 1, 0, -1, -1, -1};
@@ -257,8 +255,8 @@ public class ChessBoard {
             } else {
                 if (status.equals(MagicType.MARK)) {
                     unmarkAll();
-                    if (isReachable(selX, selY, x, y)) { // duplicate code
-                        move(x, y);
+                    if (isReachable(selX, selY, x, y)) {
+                        move(selX, selY, x, y, false);
                         check();
                         checkmate();
                         end();
@@ -315,19 +313,16 @@ public class ChessBoard {
         updatePiece(x_old, y_old, -1, -1);
     }
 
-    void move(int x, int y) {
-        move(x, y, false);
-    }
-
-    void move(int x, int y, boolean onCheckmate) {
-        if (getIcon(x, y).color.equals(opponentColor(turn))) removePiece(x, y);
-        updatePiece(selX, selY, x, y);
+    void move(int x_from, int y_from, int x_to, int y_to, boolean onCheckmate) {
+        Piece p = getIcon(x_from, y_from);
+        if (getIcon(x_to, y_to).color.equals(opponentColor(p.color))) removePiece(x_to, y_to);
+        updatePiece(x_from, y_from, x_to, y_to);
         if (onCheckmate) {
-            setPiece(x, y, getIcon(selX, selY));
-            setPiece(selX, selY, piece_null);
+            setPiece(x_to, y_to, p);
+            setPiece(x_from, y_from, piece_null);
         } else {
-            setIcon(x, y, getIcon(selX, selY));
-            setIcon(selX, selY, piece_null);
+            setIcon(x_to, y_to, p);
+            setIcon(x_from, y_from, piece_null);
         }
     }
 
@@ -353,6 +348,10 @@ public class ChessBoard {
 
     boolean isDeadPiece(int x, int y) {
         return x == -1 && y == -1;
+    }
+
+    boolean isBlankPiece(Piece piece){
+        return piece.color.equals(PlayerColor.none);
     }
 
     Piece getPiece(int x, int y) {
@@ -467,7 +466,7 @@ public class ChessBoard {
                 x_temp = x + i * x_dir;
                 y_temp = y;
                 piece_temp = getPiece(x_temp, y_temp);
-                if (piece_temp != null && piece_temp.color.equals(PlayerColor.none)) {
+                if (piece_temp != null && isBlankPiece(piece_temp)) {
                     addPossibleMove(x_temp, y_temp);
                 } else {
                     break;
@@ -551,12 +550,13 @@ public class ChessBoard {
                 int num = moves.next();
                 int x_target = int2x(num);
                 int y_target = int2y(num);
-                changeTurn();
-                backupContext();
-                move(x_target, y_target, true);
-                changeTurn();
+
+                savePosition(x_target, y_target);
+                move(selX, selY, x_target, y_target, true);
                 check();
-                restoreContext();
+                move(x_target, y_target, selX, selY, true);
+                rollbackPosition(x_target, y_target);
+
                 if (!(checkmate = check)) {
                     check = true;
                     return;
@@ -566,30 +566,31 @@ public class ChessBoard {
 
     }
 
-    void backupContext() {
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                chessBoardStatus_tmp[j][i] = getIcon(i, j);
+    void savePosition(int x, int y) {
+
+        piece_tmp = getIcon(x, y);
+        if (!isBlankPiece(piece_tmp)) {
+            int[] piece_x = getPieceX(piece_tmp.color);
+            int[] piece_y = getPieceY(piece_tmp.color);
+
+            for (int i = 0; i < 16; i++) {
+                if (isSamePosition(x, y, piece_x[i], piece_y[i])) {
+                    idx_tmp = i;
+                    break;
+                }
             }
         }
-
-        piece_x_tmp[0] = pieceX[0].clone();
-        piece_y_tmp[0] = pieceY[0].clone();
-        piece_x_tmp[1] = pieceX[1].clone();
-        piece_y_tmp[1] = pieceY[1].clone();
     }
 
-    void restoreContext() {
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                setPiece(i, j, chessBoardStatus_tmp[j][i]);
-            }
-        }
-        pieceX[0] = piece_x_tmp[0];
-        pieceY[0] = piece_y_tmp[0];
-        pieceX[1] = piece_x_tmp[1];
-        pieceY[1] = piece_y_tmp[1];
+    void rollbackPosition(int x, int y) {
 
+        if(!isBlankPiece(piece_tmp)){
+            setPiece(x, y, piece_tmp);
+            int[] piece_x = getPieceX(piece_tmp.color);
+            int[] piece_y = getPieceY(piece_tmp.color);
+            piece_x[idx_tmp] = x;
+            piece_y[idx_tmp] = y;
+        }
     }
 
     void end() {
