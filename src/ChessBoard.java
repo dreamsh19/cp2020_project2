@@ -216,8 +216,8 @@ public class ChessBoard {
     private MagicType status;
     final Piece piece_null = new Piece();
 
-    // piece_x[0], piece_y[0] : black
-    // piece_x[1], piece_y[1] : white
+    // positions[0] : black, positions[1] : white
+    // (x,y) => 8x+y ( x<<3 | y )
     private int[][] positions = new int[2][16];
 
     // temporal storage for checkmate()
